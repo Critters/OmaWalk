@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "omawalk",
+  "name": "OmaWalk",
+  "version": "0.1.0",
+  "author": "Critters",
+  "license": "MIT",
+  "description": "Daily steps and distance from an Unsit treadmill.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "OmaWalk",
+    "description": "Treadmill steps, distance, and speed.",
+    "category": "Info",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
