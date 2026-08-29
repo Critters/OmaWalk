@@ -35,6 +35,7 @@ NOTIFY_UUID = "49535343-1e4d-4bd9-ba61-23c647249616"
 NAME_HINTS = ("bm70", "issc", "unsit", "inmovement")
 
 BAR_DISPLAYS = ("none", "steps", "distance")
+MAX_STEPS_PER_SEC = 5
 
 
 def log(msg: str) -> None:
@@ -209,8 +210,9 @@ def apply_packet(state: dict, packet: Packet) -> None:
     d_time = packet.time_s - base["time"]
     d_steps = packet.steps - base["steps"]
     d_dist = packet.miles_milli - base["milesMilli"]
-    if d_time < 0 or d_steps < 0 or d_dist < 0:
-        # New session (power cycle / e-stop). Do not subtract.
+    implausible = d_steps > max(20, d_time * MAX_STEPS_PER_SEC)
+    if d_time < 0 or d_steps < 0 or d_dist < 0 or implausible:
+        # New session (power cycle / e-stop) or a corrupt/misframed packet. Do not subtract.
         base["time"] = packet.time_s
         base["cals"] = packet.cals
         base["milesMilli"] = packet.miles_milli
@@ -315,7 +317,7 @@ async def session(client, address: str, adapter: str) -> None:
     def on_notify(_sender, data: bytearray) -> None:
         nonlocal last_write
         packet = decode(bytes(data))
-        if packet is None:
+        if packet is None or not packet.framed:
             return
         with locked_state() as state:
             apply_packet(state, packet)
