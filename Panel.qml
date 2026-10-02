@@ -76,8 +76,12 @@ Panel {
   }
 
   function close() {
-    setCenterHoverRevealSuppressed(false)
-    root.settingsOpen = false
+    // Hide even if the hover flag throws. That write used to abort this
+    // function, so the popup stayed up.
+    try {
+      setCenterHoverRevealSuppressed(false)
+      root.settingsOpen = false
+    } catch (e) {}
     root.controller.hide()
   }
 
@@ -92,9 +96,29 @@ Panel {
     return false
   }
 
+  // Third-party widgets get PluginBarApi, whose centerHoverRevealSuppressed
+  // is read-only. Assigning it throws and used to abort close() before hide().
+  // The shell stores the working callback on the API object. A first-party
+  // bar has a writable property and no callback.
   function setCenterHoverRevealSuppressed(value) {
-    if (root.bar && "centerHoverRevealSuppressed" in root.bar)
-      root.bar.centerHoverRevealSuppressed = value
+    var bar = root.bar
+    if (!bar) return
+    var suppressed = !!value
+    var hook = bar._setCenterHoverRevealSuppressed
+    if (typeof hook === "function") {
+      hook(suppressed)
+      return
+    }
+    try {
+      if (typeof bar.setCenterHoverRevealSuppressed === "function") {
+        bar.setCenterHoverRevealSuppressed(suppressed)
+        return
+      }
+    } catch (e) {}
+    try {
+      if ("centerHoverRevealSuppressed" in bar)
+        bar.centerHoverRevealSuppressed = suppressed
+    } catch (e) {}
   }
 
   function startScan() {
